@@ -8,6 +8,20 @@ using System.Text;
 
 namespace Godot.NativeInterop
 {
+    /// <summary>
+    ///   Allow subscribing to unhandled exception events.
+    ///   This is similar to AppDomain.CurrentDomain.UnhandledException, but works in the context of Godot 4.
+    /// </summary>
+    public static class ExceptionManager
+    {
+        public static event UnhandledExceptionEventHandler? UnhandledException;
+
+        internal static void Raise(object sender, UnhandledExceptionEventArgs e)
+        {
+            UnhandledException?.Invoke(sender, e);
+        }
+    }
+
     internal static class ExceptionUtils
     {
         public static void PushError(string message)
@@ -102,12 +116,41 @@ namespace Godot.NativeInterop
 
         public static void LogException(Exception e)
         {
-            throw e;
+            try
+            {
+                if (NativeFuncs.godotsharp_internal_script_debugger_is_active().ToBool())
+                {
+                    SendToScriptDebugger(e);
+                }
+                else
+                {
+                    GD.PushError(e.ToString());
+                }
+            }
+            catch (Exception unexpected)
+            {
+                OnExceptionLoggerException(unexpected, e);
+            }
+            ExceptionManager.Raise(e, new UnhandledExceptionEventArgs(e, false));
         }
 
         public static void LogUnhandledException(Exception e)
         {
-            throw e;
+            try
+            {
+                if (NativeFuncs.godotsharp_internal_script_debugger_is_active().ToBool())
+                {
+                    SendToScriptDebugger(e);
+                }
+
+                // In this case, print it as well in addition to sending it to the script debugger
+                GD.PushError("Unhandled exception\n" + e);
+            }
+            catch (Exception unexpected)
+            {
+                OnExceptionLoggerException(unexpected, e);
+            }
+            ExceptionManager.Raise(e, new UnhandledExceptionEventArgs(e, false));
         }
 
         [Conditional("DEBUG")]
