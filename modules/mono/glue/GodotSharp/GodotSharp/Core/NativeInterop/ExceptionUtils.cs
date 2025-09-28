@@ -14,11 +14,25 @@ namespace Godot.NativeInterop
     /// </summary>
     public static class ExceptionManager
     {
+        /// <summary>
+        ///   Handler for unhandled exceptions
+        /// </summary>
         public static event UnhandledExceptionEventHandler? UnhandledException;
 
-        internal static void Raise(object sender, UnhandledExceptionEventArgs e)
+        /// <summary>
+        ///   Indicates if the behavior should be to ignore unhandled exceptions
+        ///   Otherwise, the unhandled exceptions will be rethrown.
+        /// </summary>
+        public static bool IgnoreUnhandledExceptions { get; set; }
+
+        internal static void Handle(Exception e)
         {
-            UnhandledException?.Invoke(sender, e);
+            UnhandledExceptionEventArgs args = new UnhandledExceptionEventArgs(e, false);
+            UnhandledException?.Invoke(e, args);
+            if (!IgnoreUnhandledExceptions)
+            {
+                throw e;
+            }
         }
     }
 
@@ -131,7 +145,8 @@ namespace Godot.NativeInterop
             {
                 OnExceptionLoggerException(unexpected, e);
             }
-            ExceptionManager.Raise(e, new UnhandledExceptionEventArgs(e, false));
+
+            ExceptionManager.Handle(e);
         }
 
         public static void LogUnhandledException(Exception e)
@@ -150,7 +165,8 @@ namespace Godot.NativeInterop
             {
                 OnExceptionLoggerException(unexpected, e);
             }
-            ExceptionManager.Raise(e, new UnhandledExceptionEventArgs(e, false));
+
+            ExceptionManager.Handle(e);
         }
 
         [Conditional("DEBUG")]
