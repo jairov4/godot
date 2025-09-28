@@ -102,39 +102,12 @@ namespace Godot.NativeInterop
 
         public static void LogException(Exception e)
         {
-            try
-            {
-                if (NativeFuncs.godotsharp_internal_script_debugger_is_active().ToBool())
-                {
-                    SendToScriptDebugger(e);
-                }
-                else
-                {
-                    GD.PushError(e.ToString());
-                }
-            }
-            catch (Exception unexpected)
-            {
-                OnExceptionLoggerException(unexpected, e);
-            }
+            throw e;
         }
 
         public static void LogUnhandledException(Exception e)
         {
-            try
-            {
-                if (NativeFuncs.godotsharp_internal_script_debugger_is_active().ToBool())
-                {
-                    SendToScriptDebugger(e);
-                }
-
-                // In this case, print it as well in addition to sending it to the script debugger
-                GD.PushError("Unhandled exception\n" + e);
-            }
-            catch (Exception unexpected)
-            {
-                OnExceptionLoggerException(unexpected, e);
-            }
+            throw e;
         }
 
         [Conditional("DEBUG")]
